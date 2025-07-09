@@ -1,0 +1,32 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  IMAGE_NAME: my-react-app
+
+build:
+  stage: build
+  image: node:16
+  script:
+    - npm install
+    - npm run build
+    - docker build -t $IMAGE_NAME .
+  artifacts:
+    paths:
+      - build/
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+  script:
+    - |
+      ssh -o StrictHostKeyChecking=no user@your_vps_ip << 'EOF'
+      docker stop $IMAGE_NAME || true
+      docker rm $IMAGE_NAME || true
+      docker run -d --name $IMAGE_NAME -p 80:80 $IMAGE_NAME
+      EOF
+  only:
+    - main
